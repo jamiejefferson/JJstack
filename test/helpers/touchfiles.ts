@@ -373,6 +373,14 @@ export const E2E_TOUCHFILES: Record<string, string[]> = {
   // Real-device path — only runs with GSTACK_HAS_IOS_DEVICE=1 + a paired
   // iPhone. Validates the CoreDevice agent + iOS SDK toolchain. Periodic-tier.
   'ios-qa-device':    ['ios-qa/templates/**', 'test/fixtures/ios-qa/FixtureApp/**', 'test/skill-e2e-ios-device.test.ts'],
+
+  // Three-route stack guardrails (JJstack fork). Each route gate's refusal
+  // logic + the router's routing decision. preamble.ts is included because
+  // skill behavior shifts with the preamble.
+  'discovery-dx-routing':               ['discovery/**', 'test/skill-e2e-routes.test.ts', 'scripts/resolvers/preamble.ts'],
+  'market-fit-no-experiment-not-green': ['market-fit/**', 'test/skill-e2e-routes.test.ts', 'scripts/resolvers/preamble.ts'],
+  'transform-no-measurement-not-green': ['transform/**', 'test/skill-e2e-routes.test.ts', 'scripts/resolvers/preamble.ts'],
+  'problem-solver-anti-scope':          ['problem-solver/**', 'test/skill-e2e-routes.test.ts', 'scripts/resolvers/preamble.ts'],
 };
 
 /**
@@ -647,6 +655,13 @@ export const E2E_TIERS: Record<string, 'gate' | 'periodic'> = {
   'ios-qa-swift-build': 'periodic',
   // Requires a real connected + paired iPhone. Manual-trigger only.
   'ios-qa-device': 'periodic',
+
+  // Three-route stack guardrails — periodic. Non-deterministic LLM behavior on
+  // brand-new skills; promote to gate once they prove stable across runs.
+  'discovery-dx-routing': 'periodic',
+  'market-fit-no-experiment-not-green': 'periodic',
+  'transform-no-measurement-not-green': 'periodic',
+  'problem-solver-anti-scope': 'periodic',
 };
 
 /**
