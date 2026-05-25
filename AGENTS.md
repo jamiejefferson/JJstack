@@ -22,6 +22,18 @@ Invoke them by name (e.g., `/office-hours`).
 | `/autoplan` | One command runs CEO → design → eng → DX review. |
 | `/design-consultation` | Build a complete design system from scratch. |
 
+### Route selection (three-route stack)
+
+Pick a delivery route once per project, then the same build → review → QA → ship
+tail applies. Only the planning gate at the front changes.
+
+| Skill | What it does |
+|-------|-------------|
+| `/discovery` | Pick the route — VC (commercial), DX (digital transformation), or Sandbox (personal). Persists the choice and starts the right plan gate. |
+| `/market-fit` | VC route. Commercial deep dive: persona, pricing, distribution, wedge, a ≤7-day validation experiment, and a Go/No-Go. |
+| `/transform` | DX route. Turns a strategic insight into a costed, measurable change: target operating model, solution shape, measurement and adoption plan. |
+| `/problem-solver` | Sandbox route. Builds the smallest thing that works for a personal problem in three time-boxed sprints, then tells you to stop. |
+
 ### Implementation + review
 
 | Skill | What it does |

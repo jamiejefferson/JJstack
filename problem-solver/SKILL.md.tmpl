@@ -1,0 +1,131 @@
+---
+name: problem-solver
+preamble-tier: 2
+version: 1.0.0
+description: |
+  Sandbox-route personal innovation engine. Builds the stupidest thing that could
+  possibly work for a personal, non-commercial problem — in hours, not days. One
+  irreducible core loop, the cheapest stack, three time-boxed sprints, then a
+  good-enough gate that tells you to stop.
+  Use when asked to "build a quick script", "automate this for me", "scratch my
+  own itch", "prototype this", or "problem solver".
+  Proactively invoke this skill on the Sandbox route after /discovery, or whenever
+  the user wants a personal tool fast and explicitly does not want a product,
+  platform, or anything other people depend on. (gstack)
+allowed-tools:
+  - Bash
+  - Read
+  - Write
+  - Edit
+  - AskUserQuestion
+  - WebSearch
+triggers:
+  - problem solver
+  - scratch my own itch
+  - build a quick script
+  - automate this for me
+  - prototype this
+---
+
+{{PREAMBLE}}
+
+# /problem-solver — Personal innovation engine
+
+The Sandbox route. **Speed over perfection. Build the stupidest thing that could
+possibly work**, use it for a week, and only then consider improving it.
+
+This is the one route where the build happens inside the skill. It is deliberately
+small. If you find yourself reaching for accounts, cloud, dashboards, or "scale",
+you are off the route.
+
+---
+
+## Step 1: Define the irreducible core
+
+Ask:
+
+> "What is the **one manual step** that wastes the most of your time? One sentence."
+>
+> "If you could press a magic button that did only that step, what would it do?"
+
+Output a single core loop:
+
+> "Go from **[input X]** to **[output Y]** in **[time goal]**, with zero manual effort."
+
+Reject any answer with two verbs. "Download, clean, and graph" is three tools and
+a project. Push for one transformation. The rest can wait for week two.
+
+## Step 2: Choose the cheapest possible stack
+
+Pick the lightest tool that does the job. Default to a plain script — it runs
+anywhere and has no moving parts.
+
+| Problem type | Default tool |
+|--------------|--------------|
+| Data scraping / parsing | Python (`requests` + `pandas`) or a `$B` browse flow |
+| Automation / glue | Bash + `cron` |
+| Tiny UI | A single generated HTML file, or Streamlit |
+| Local webhook | A few lines of Flask + a tunnel |
+| Connect two SaaS apps | The free tier of an automation tool (Make / Zapier) |
+
+If the user hesitates, pick the script. Never reach for a database unless the
+input is genuinely larger than ~10,000 rows; flat files are fine below that.
+
+## Step 3: Build in three sprints, ≤ 30 minutes each
+
+No gold-plating. Each sprint ends with a working artifact the user runs.
+
+**Sprint 1 — input/output skeleton.** Hardcode the input (a path, a URL). Print
+the output to the console. Goal: "I can see the raw result."
+
+**Sprint 2 — the transformation.** Implement the one piece of real logic. Save the
+output to a file. Goal: "Correct output for one hardcoded case."
+
+**Sprint 3 — make it reusable.** Replace hardcoded values with CLI arguments or a
+tiny config. Add error handling for the single most likely failure. Goal: "I can
+run it with different inputs."
+
+After each sprint the user runs it and reports "works" or "fails". On failure,
+debug only that sprint — no backtracking, no rewrites.
+
+## Step 4: The good-enough gate
+
+Ask via AskUserQuestion:
+
+> "Does this already save you at least ~10 minutes per use?"
+
+- **Yes** → **Ship it.** Stop building. Move it to `~/bin/` or make an alias, and
+  use it for a week before adding anything.
+- **One feature short** → allow **one** more sprint (≤ 15 minutes) for that single
+  feature, then re-run this gate. No third bite.
+
+## Step 5: Output — Personal innovation log
+
+```markdown
+## Problem Solver Report
+- Core loop:        [input] → [output]
+- Stack used:       [tool]
+- Total build time: [actual minutes]
+- Time saved/use:   [estimated minutes]
+
+### Next step (after one week of real use)
+Re-run /problem-solver and ask: "What still annoys me?" Build that next.
+
+### Anti-scope note
+Did not add: accounts, cloud deploy, analytics, or anything outside the core loop.
+```
+
+If the tool earns its keep and the user wants to share it, suggest `/ship` to put
+it in a personal repo — but only after a week of use proves it's worth keeping.
+
+## Guardrails
+
+- If the user starts describing a "platform" or "scalable architecture", stop:
+  "You're in Sandbox mode. If a friend needs it, copy them the script. Don't
+  over-engineer a personal tool." If it genuinely wants to be a product, route
+  them back to `/discovery` and the VC route.
+- If total build time passes ~90 minutes, force a checkpoint: "What is the smallest
+  piece you can finish in 15 minutes? Do that, then stop for today."
+- Personal, non-commercial only. Commercial ambitions belong on the VC route.
+
+{{LEARNINGS_LOG}}
