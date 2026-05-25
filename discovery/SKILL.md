@@ -766,15 +766,21 @@ ones read the route's success metric from the plan artifact and judge against it
 
 ## Step 1: Check for an existing route
 
-A route is stored per-project so you only choose once.
+The route is stored in a committed `.gstack-route` file at the repo root, so a
+teammate who clones the project inherits it. Outside a git repo (e.g. a personal
+Sandbox scratch folder) it falls back to machine-local state.
 
 ```bash
-eval "$(~/.claude/skills/gstack/bin/gstack-slug 2>/dev/null)" && mkdir -p ~/.gstack/projects/$SLUG
-ROUTE_FILE=~/.gstack/projects/$SLUG/route
-if [ -f "$ROUTE_FILE" ]; then
-  echo "EXISTING_ROUTE=$(cat "$ROUTE_FILE")"
+ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
+if [ -n "$ROOT" ] && [ -f "$ROOT/.gstack-route" ]; then
+  echo "EXISTING_ROUTE=$(cat "$ROOT/.gstack-route")  (source: .gstack-route)"
 else
-  echo "NO_ROUTE"
+  eval "$(~/.claude/skills/gstack/bin/gstack-slug 2>/dev/null)"
+  if [ -n "${SLUG:-}" ] && [ -f ~/.gstack/projects/$SLUG/route ]; then
+    echo "EXISTING_ROUTE=$(cat ~/.gstack/projects/$SLUG/route)  (source: local state)"
+  else
+    echo "NO_ROUTE"
+  fi
 fi
 ```
 
@@ -802,14 +808,28 @@ If the user is unsure, ask one clarifying question: "Will anyone other than you
 depend on the result, and is money or a client involved?" Money/client → VC or DX.
 Just you → Sandbox. A client/org but no direct revenue → DX.
 
-Persist the choice as a lowercase token (`vc`, `dx`, or `sandbox`):
+Persist the choice as a lowercase token (`vc`, `dx`, or `sandbox`). Inside a git
+repo this writes a committed `.gstack-route` so the whole team inherits it;
+otherwise it falls back to machine-local state. Substitute `<route>` with the
+chosen token.
 
 ```bash
-eval "$(~/.claude/skills/gstack/bin/gstack-slug 2>/dev/null)"
-mkdir -p ~/.gstack/projects/$SLUG
-printf '%s\n' "<vc|dx|sandbox>" > ~/.gstack/projects/$SLUG/route
-echo "Route set to <route> for project $SLUG."
+ROUTE="<route>"   # vc | dx | sandbox
+ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
+if [ -n "$ROOT" ]; then
+  printf '%s\n' "$ROUTE" > "$ROOT/.gstack-route"
+  echo "Wrote $ROOT/.gstack-route. Commit it so teammates inherit the route:"
+  echo "  git add .gstack-route && git commit -m \"set project route: $ROUTE\""
+else
+  eval "$(~/.claude/skills/gstack/bin/gstack-slug 2>/dev/null)"
+  mkdir -p ~/.gstack/projects/$SLUG
+  printf '%s\n' "$ROUTE" > ~/.gstack/projects/$SLUG/route
+  echo "Not a git repo — stored route locally at ~/.gstack/projects/$SLUG/route"
+fi
 ```
+
+If this is a git repo, remind the user to commit `.gstack-route` so the route
+travels with the project to every teammate.
 
 ---
 

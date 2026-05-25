@@ -1269,7 +1269,7 @@ Run after upgrading gstack or adding new `@Observable` classes. Detects what's i
 
 ## `/discovery`
 
-The entry point for the three-route stack. Most gstack skills assume a commercial product; this fork adds two more delivery routes and a router to pick between them. A route is chosen once per project and persisted under `~/.gstack/projects/<slug>/route`, so you only answer the question the first time.
+The entry point for the three-route stack. Most gstack skills assume a commercial product; this fork adds two more delivery routes and a router to pick between them. A route is chosen once per project and stored in a committed `.gstack-route` file at the repo root, so teammates who clone the project inherit it (outside a git repo it falls back to machine-local state).
 
 | Route | For | Plan gate | Success metric |
 |-------|-----|-----------|----------------|
