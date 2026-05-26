@@ -1,0 +1,131 @@
+---
+name: discovery
+preamble-tier: 2
+version: 1.0.0
+description: |
+  Project router for the three-route stack. Picks the delivery route — VC
+  (commercial product), DX (digital transformation from a strategic insight),
+  or Sandbox (personal, non-commercial invention) — persists the choice
+  per-project, and points you at the right planning gate.
+  Use when starting a new project, or when asked "which route", "set the
+  project route", "what should I build with", or "discovery".
+  Proactively invoke this skill when the user starts a new project or repo and
+  it is not yet clear whether the work is a commercial product, a client/org
+  transformation, or a personal tool. (gstack)
+allowed-tools:
+  - Bash
+  - Read
+  - Write
+  - AskUserQuestion
+triggers:
+  - discovery
+  - which route
+  - set the project route
+  - what should I build with
+---
+
+{{PREAMBLE}}
+
+# /discovery — Pick the route
+
+This stack ships three delivery routes. They share the same build → review →
+QA → ship muscle. Only the **planning gate at the front** changes, so the
+muscle memory carries across all three.
+
+| Route | For | Plan gate | Then | Success metric |
+|-------|-----|-----------|------|----------------|
+| **VC** | Commercial product | `/market-fit` | `/plan-ceo-review` → `/plan-eng-review` | Revenue, users, retention |
+| **DX** | Client / org digital transformation from a strategic insight | `/transform` | `/plan-eng-review` | Time saved, error reduction, ROI |
+| **Sandbox** | Personal, non-commercial invention | `/problem-solver` | (implement, then `/ship` if worth it) | Personal time saved |
+
+After the plan gate, every route runs the same tail: implement → `/review` →
+`/qa` → `/ship`. There are no route-specific review/QA/ship gates; the existing
+ones read the route's success metric from the plan artifact and judge against it.
+
+---
+
+## Step 1: Check for an existing route
+
+The route is stored in a committed `.gstack-route` file at the repo root, so a
+teammate who clones the project inherits it. Outside a git repo (e.g. a personal
+Sandbox scratch folder) it falls back to machine-local state.
+
+```bash
+ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
+if [ -n "$ROOT" ] && [ -f "$ROOT/.gstack-route" ]; then
+  echo "EXISTING_ROUTE=$(cat "$ROOT/.gstack-route")  (source: .gstack-route)"
+else
+  {{SLUG_EVAL}}
+  if [ -n "${SLUG:-}" ] && [ -f ~/.gstack/projects/$SLUG/route ]; then
+    echo "EXISTING_ROUTE=$(cat ~/.gstack/projects/$SLUG/route)  (source: local state)"
+  else
+    echo "NO_ROUTE"
+  fi
+fi
+```
+
+1. If `EXISTING_ROUTE` is set, tell the user which route this project is on, then
+   use AskUserQuestion to ask whether to **keep** it or **switch**. If they keep
+   it, skip to Step 3. If they switch, continue to Step 2.
+2. If `NO_ROUTE`, continue to Step 2.
+
+---
+
+## Step 2: Choose the route
+
+Ask via AskUserQuestion (single select). Frame each option by outcome, not jargon:
+
+- **VC — commercial product.** You intend to charge for this and grow it. The
+  bottleneck is demand and willingness to pay, so the first gate is `/market-fit`.
+- **DX — digital transformation.** You are solving an organisation's problem from
+  a strategic insight (meeting notes, management info, an observed inefficiency).
+  The bottleneck is demonstrable change and ROI, so the first gate is `/transform`.
+- **Sandbox — personal invention.** You are scratching your own itch. The
+  bottleneck is your own time, so the first gate is `/problem-solver` and the
+  whole thing is time-boxed.
+
+If the user is unsure, ask one clarifying question: "Will anyone other than you
+depend on the result, and is money or a client involved?" Money/client → VC or DX.
+Just you → Sandbox. A client/org but no direct revenue → DX.
+
+Persist the choice as a lowercase token (`vc`, `dx`, or `sandbox`). Inside a git
+repo this writes a committed `.gstack-route` so the whole team inherits it;
+otherwise it falls back to machine-local state. Substitute `<route>` with the
+chosen token.
+
+```bash
+ROUTE="<route>"   # vc | dx | sandbox
+ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
+if [ -n "$ROOT" ]; then
+  printf '%s\n' "$ROUTE" > "$ROOT/.gstack-route"
+  echo "Wrote $ROOT/.gstack-route. Commit it so teammates inherit the route:"
+  echo "  git add .gstack-route && git commit -m \"set project route: $ROUTE\""
+else
+  {{SLUG_EVAL}}
+  mkdir -p ~/.gstack/projects/$SLUG
+  printf '%s\n' "$ROUTE" > ~/.gstack/projects/$SLUG/route
+  echo "Not a git repo — stored route locally at ~/.gstack/projects/$SLUG/route"
+fi
+```
+
+If this is a git repo, remind the user to commit `.gstack-route` so the route
+travels with the project to every teammate.
+
+---
+
+## Step 3: Hand off to the plan gate
+
+State the full sequence for the chosen route, then start the first gate.
+
+- **VC:** "Route: VC. Sequence: `/market-fit` → `/plan-ceo-review` →
+  `/plan-eng-review` → implement → `/review` → `/qa` → `/ship`. Starting with
+  `/market-fit`." Then invoke `/market-fit`.
+- **DX:** "Route: DX. Sequence: `/transform` → `/plan-eng-review` → implement →
+  `/review` → `/qa` → `/ship`. Paste your strategic insight, meeting notes, or MI
+  and I'll run `/transform`." Then invoke `/transform`.
+- **Sandbox:** "Route: Sandbox. Sequence: `/problem-solver` → implement →
+  `/ship` (only if it earns its keep). Describe the single thing that wastes your
+  time and I'll run `/problem-solver`." Then invoke `/problem-solver`.
+
+Do not run the downstream gates yourself here. `/discovery` only sets the route
+and starts the first plan gate; the user drives the rest.

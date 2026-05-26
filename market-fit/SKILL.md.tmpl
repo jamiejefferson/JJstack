@@ -1,0 +1,176 @@
+---
+name: market-fit
+preamble-tier: 3
+version: 1.0.0
+description: |
+  VC-route commercial deep dive. Validates commercial viability before you build:
+  customer segmentation, pricing and willingness to pay, distribution channels,
+  competitive wedge, and a time-boxed validation experiment. Ends with a
+  Commercial Readiness Score and a Go / No-Go.
+  Use when asked to validate a business idea, "will anyone pay for this", "pricing",
+  "go to market", "find customers", or "market fit".
+  Proactively invoke this skill on the VC route after /discovery, before
+  /plan-ceo-review, whenever the user proposes a paid product but has not yet
+  pinned down who pays, how much, or how they are reached. (gstack)
+allowed-tools:
+  - Bash
+  - Read
+  - Write
+  - AskUserQuestion
+  - WebSearch
+triggers:
+  - market fit
+  - will anyone pay for this
+  - go to market
+  - find customers
+  - pricing
+---
+
+{{PREAMBLE}}
+
+# /market-fit — Commercial deep dive
+
+The VC route's first gate. A product that no one will pay for is a hobby with
+extra steps. This gate forces the demand side into the open *before* engineering
+time is spent. It produces a brief and a Go / No-Go, not code.
+
+**Prerequisite:** the project should be on the **VC** route (`/discovery`). If the
+route is unset or different, say so and offer to switch before continuing.
+
+Run the whole thing in the user's own numbers. **Never invent customer quotes,
+prices, or demand data.** Where a number is missing, write `[unknown]` and add it
+to the data-collection checklist instead of guessing.
+
+---
+
+## Step 1: Customer segmentation
+
+Ask, one question at a time:
+
+> "Who is your earliest, most desperate customer? Name one specific role or persona."
+>
+> "What is the one thing they cannot do today that your product will let them do?"
+
+If the answer is vague ("SMEs", "everyone", "businesses"), push back: "Name one
+concrete company type or individual. We can widen the aperture later, but a
+product for everyone is a product for no one."
+
+Record:
+
+```
+Primary persona:      [role / company type]
+Irresistible promise: [verb] + [outcome]
+```
+
+## Step 2: Pricing and willingness to pay
+
+Ask in order:
+
+1. "What does this problem **cost the customer today**? (e.g. £5,000/month in
+   wasted labour, £20k/year in churn, 10 hours/week of someone's time.)"
+2. "Would they pay roughly **10% of that cost** without flinching? If not, why not?"
+3. Pricing model — ask via AskUserQuestion (single select):
+   - **One-time fee** — simple, no recurring relationship.
+   - **Monthly subscription** — predictable revenue, needs retention.
+   - **Usage-based** — scales with value delivered, harder to forecast.
+   - **Outcome-based** — a share of the savings/upside; highest trust bar.
+4. "What is the **minimum price** that still covers your costs with margin?"
+
+If the user has no numbers, give them a hypothesis to test rather than a made-up
+figure: "Assume the problem costs £X. We'll test willingness to pay by asking five
+real prospects: 'If this were solved for £Y/month, would you sign?'"
+
+## Step 3: Distribution
+
+Ask how they reach the persona today (multiple allowed): LinkedIn / X / community,
+existing client relationships, cold email / outbound, a marketplace (App Store,
+Shopify, etc.), partnerships, or other.
+
+Score each named channel and output a table:
+
+| Channel | Effort (L/M/H) | Time to first customer | Priority |
+|---------|----------------|------------------------|----------|
+| ...     | ...            | ...                    | ...      |
+
+If the user tries to skip distribution, stop and flag it: "No distribution means
+no customers. A great product down a channel no one walks past still dies.
+Revisit this step."
+
+## Step 4: Competitive wedge
+
+Ask for the top two alternatives the customer uses today — **including the manual
+status quo** (spreadsheets, an assistant, doing nothing). For each:
+
+- What does it do **worse** than your solution?
+- What does it do **better**?
+- What would make a customer **switch tomorrow**?
+
+Output a one-line **wedge statement**:
+
+> "We win because [alternative] cannot [capability], and our customer already
+> burns [time/money] on exactly that gap."
+
+Optionally WebSearch for "{category} alternatives {year}" and pricing pages to
+sanity-check the landscape. Sanitize any private details before searching.
+
+## Step 5: Validation experiment (must be ≤ 7 days)
+
+Commercial readiness is earned by a real test, not an opinion. Ask via
+AskUserQuestion which experiment the user will commit to:
+
+- **Pre-sell** — get 3 personas to a refundable deposit or signed letter of intent.
+- **Paid landing test** — ~£100 of ads to a landing page with a "Book a demo" CTA.
+- **Concierge** — hand-deliver the outcome to one customer manually for free, then
+  ask "would you pay £X for this every month?"
+
+Capture the chosen experiment and a deadline of **today + 7 days**. If the user
+refuses to pick one, this gate cannot pass — say so plainly and stop:
+
+> "Without a validation experiment, `/market-fit` cannot return Green. Re-run this
+> gate once you're ready to test a single channel with real people."
+
+---
+
+## Step 6: Output — Commercial Readiness
+
+Save the brief to the project so downstream gates can read the success metric:
+
+```bash
+{{SLUG_SETUP}}
+OUT=~/.gstack/projects/$SLUG/$(date +%Y-%m-%d)-market-fit.md
+echo "Writing commercial readiness brief to $OUT"
+```
+
+Write the brief to that path, in this shape:
+
+```markdown
+## Market Fit Summary
+- Persona: ...
+- Problem cost estimate: £...
+- Suggested pricing: £... (model: ...)
+- Distribution priority: [top channel]
+- Competitive wedge: ...
+- Validation experiment: [option] — due [date + 7]
+- Success metric (carried downstream): [revenue / users / retention target]
+
+### Go / No-Go
+- GREEN  → demand, price, and a channel are credible. Proceed to /plan-ceo-review.
+- YELLOW → run the validation experiment first, then re-run /market-fit.
+- RED    → pivot. Major gap in [persona clarity / pricing / distribution].
+```
+
+Then state the verdict in one line and route:
+
+- **GREEN** → "Proceed to `/plan-ceo-review`, then `/plan-eng-review`."
+- **YELLOW** → "Run the experiment, then re-run `/market-fit`."
+- **RED** → name the single biggest gap and what would turn it green.
+
+## Guardrails
+
+- If the user answers "I don't know" to more than two questions, stop and output a
+  short data-collection checklist instead of a score. A score built on guesses is
+  worse than no score.
+- Never fabricate customer quotes, prices, or demand figures. Use `[unknown]`.
+- No distribution plan → cannot be Green, regardless of how good the product is.
+
+{{LEARNINGS_LOG}}

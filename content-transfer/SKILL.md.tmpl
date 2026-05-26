@@ -1,0 +1,242 @@
+---
+name: content-transfer
+preamble-tier: 2
+version: 1.0.0
+description: |
+  Migrates content from one site or source to another: extract from source, map
+  the old content model to the new, transform deterministically, upload to the
+  target, then verify. CMS-agnostic — works for any source/target pair
+  (WordPress → Webflow, Squarespace → Ghost, Notion export → custom CMS, etc.).
+  Built on top of /scrape and /browse for extraction. The mapping document and
+  redirect map are load-bearing artifacts; the skill will not proceed past
+  Phase 2 without explicit sign-off, and will not upload without a redirect map.
+  Use when asked to "migrate the site", "move content to new CMS", "transfer
+  the website", "content migration", or "rebuild this site on X".
+  Proactively invoke when the user has a clear source and target and wants to
+  move content between them. (gstack)
+allowed-tools:
+  - Bash
+  - Read
+  - Write
+  - Edit
+  - Grep
+  - Glob
+  - AskUserQuestion
+  - WebSearch
+  - WebFetch
+triggers:
+  - content transfer
+  - migrate the site
+  - move content to new CMS
+  - transfer the website
+  - content migration
+  - rebuild this site on
+---
+
+{{PREAMBLE}}
+
+# /content-transfer — Move content from one site to another
+
+A runbook for site migrations. The shape is *extract → map → transform → upload
+→ verify*; the load-bearing artifact is the **mapping document**, because if
+the mapping is wrong, everything downstream is wrong. This skill will not
+proceed past Phase 2 without explicit sign-off on the mapping.
+
+Extraction is delegated to `/scrape` (and underneath, `/browse`) — they handle
+live sites, auth, JS rendering. Upload is target-specific; this skill keeps the
+mapping and transform CMS-agnostic so the same workflow handles WordPress →
+Webflow, Squarespace → Ghost, Notion → custom, and similar pairs.
+
+**Never fabricate target CMS APIs you haven't verified.** If you don't know
+the target's import format or API, stop and check (docs or WebSearch) before
+emitting transform output.
+
+---
+
+## Phase 1: Inventory the source
+
+Establish the size and shape of what's moving.
+
+Ask the user (or read from an export file):
+
+- **Source type:** live site URL, an export file (WordPress XML, Webflow JSON,
+  Notion zip, CSV, etc.), or a database dump.
+- **Auth requirements:** can you reach the source pages anonymously, or do you
+  need cookies / a login? If logged-in, run `/setup-browser-cookies` first.
+- **Page count and content types:** how many pages, posts, products, etc.
+- **Taxonomies:** categories, tags, collections, custom taxonomies.
+- **Media:** images, video, files, and where they live.
+- **Out of scope:** what is *not* moving (old drafts, archive sections, etc.).
+
+Output: a **Source Inventory** with concrete counts. If counts are unknown,
+mark `[unknown]` and add to the data-collection list — do not guess.
+
+## Phase 2: Map source model → target model
+
+The hard, taste-driven phase. Old categories don't cleanly map to new ones,
+and the choices made here propagate through every page.
+
+For each source content type, decide:
+
+- Which target type does it become? (Old `post` → new `article`? New `news_item`?)
+- Which source fields map to which target fields? Name the renames, the
+  combinations, the drops.
+- What target fields are *new* (no source) and how should they be populated?
+- How do taxonomies map? (Old `Category: Engineering` + `Tag: Caching` → new
+  `Topic: Engineering / Performance`?)
+- How are URLs / slugs rewritten? This drives the redirect map in Phase 3.
+
+Produce a **Mapping Document** as a real artifact:
+
+```bash
+{{SLUG_SETUP}}
+MAP=~/.gstack/projects/$SLUG/content-transfer-mapping.md
+echo "Writing mapping document to $MAP"
+```
+
+Mapping document shape:
+
+```markdown
+## Mapping — <source> → <target>
+
+### Content type mapping
+| Source type | Target type | Notes |
+|-------------|-------------|-------|
+| post        | article     | drop `featured_image_caption`; merge into body |
+| page        | page        | identical |
+| product     | (none)      | not moving — see out of scope |
+
+### Field mapping (per type)
+**post → article**
+- `title` → `title`
+- `body_html` → `body_markdown` (convert via Phase 3 transform)
+- `published_at` → `published_at`
+- `author_id` → `author_email` (resolved via team-member table)
+- (new) → `seo_description` (regenerated from body summary)
+
+### Taxonomy mapping
+- Source category "Engineering" → Topic "Engineering"
+- Source tag "Caching" + category "Engineering" → Topic "Engineering / Performance"
+...
+
+### URL/slug rewriting rule
+- `/blog/:slug` → `/articles/:slug`
+- `/case-studies/:slug` → `/work/:slug`
+- everything else under `/legacy/*` → 410 (gone)
+```
+
+**HARD GATE:** Use `AskUserQuestion` to get explicit sign-off on the mapping
+document before continuing. The skill must not proceed to Phase 3 until the
+user confirms the mapping reads correctly. If they want changes, iterate
+until they sign off.
+
+## Phase 3: Transform plan + redirect map
+
+With the mapping locked, plan the deterministic transforms:
+
+- **Body rewriting:** HTML → Markdown? Markdown → MDX? Strip inline styles?
+  Preserve embed shortcodes? Be specific.
+- **Image strategy:** download and re-host? Reference original URLs? Rewrite
+  CDN paths? Where do alt-texts come from if missing?
+- **Internal link rewriting:** how `<a href="/old-path">` becomes
+  `<a href="/new-path">`. This relies on the URL map from Phase 2.
+- **SEO carry-over:** meta-title, meta-description, canonical, OG tags.
+- **Redirect map** — for every old URL, the new URL or `410`. This is a real
+  file the user installs on the *new* host's edge / web server.
+
+Write the redirect map to `~/.gstack/projects/$SLUG/redirects.csv` (or the
+target's native format).
+
+## Phase 4: Extract
+
+Pull content from source. Delegate to `/scrape` for live sites, or read the
+export file directly.
+
+For live extraction:
+
+> "Run `/scrape` against `<source-url>` to pull each page's title, body, slug,
+> categories, tags, and featured image. Save raw output to
+> `~/.gstack/projects/$SLUG/source/`."
+
+For exports: parse the file (WordPress XML → use the schema; Notion zip →
+unzip and walk; CSV → straightforward). Validate that the extracted page
+count matches Phase 1's inventory.
+
+Output: one structured file per source page (JSON or YAML) under
+`~/.gstack/projects/$SLUG/source/`.
+
+## Phase 5: Transform
+
+Apply the Phase 2 mapping and Phase 3 transform plan deterministically. This
+is the only mechanical phase — no taste, just rules.
+
+For each source file:
+
+1. Apply field mapping.
+2. Apply taxonomy mapping.
+3. Apply body-rewriting transform (HTML→Markdown, etc.).
+4. Apply image strategy.
+5. Apply internal-link rewriting.
+6. Emit a target file under `~/.gstack/projects/$SLUG/target/`.
+
+If the transform fails on a page (malformed body, missing required field),
+log it and continue. Produce a **failure list** for human review rather than
+bailing the whole run.
+
+## Phase 6: Upload
+
+Push the transformed files to the target.
+
+Before uploading: **offer the user a dry-run** option (upload one or two pages
+first, let them inspect, then proceed with the rest). For large migrations,
+this is non-optional — do not skip.
+
+Upload mechanism is target-specific:
+
+- **CMS with an API** (Webflow, Ghost, Sanity, Contentful, custom): use the
+  documented API. If you don't know the API, WebFetch the docs or stop and
+  ask the user.
+- **CMS with an import format** (WordPress WXR, Webflow CSV, Ghost JSON):
+  emit a single import file and instruct the user to import via the target's
+  UI.
+- **Custom**: write the target files to the right paths in a repo and let the
+  user deploy normally.
+
+**Do not upload without a redirect map.** If `~/.gstack/projects/$SLUG/redirects.csv`
+doesn't exist, stop and tell the user — SEO continuity matters and uploading
+without redirects is a silent regression.
+
+## Phase 7: Verify
+
+Confirm the migration before declaring done.
+
+- **Spot-check** 5-10 pages across content types. Compare source rendering
+  with target rendering.
+- **Broken-link check** on the target site (use `/browse` or a link checker).
+  Internal links should all resolve. External links should still work.
+- **Redirect sanity:** for the redirect map, hit ~10 old URLs on the new host
+  (with redirects installed) and confirm they go to the right new URLs.
+- **Search engines:** ask the user to resubmit sitemaps to Google Search
+  Console / Bing Webmaster after redirects go live.
+
+Output a one-page **Migration Report** to
+`~/.gstack/projects/$SLUG/migration-report.md` with: counts, failure list (if
+any), spot-check results, and outstanding manual steps.
+
+---
+
+## Guardrails
+
+- **Never proceed past Phase 2 without explicit user sign-off on the mapping
+  document.** It's the load-bearing artifact; getting it wrong corrupts every
+  later phase.
+- **Never upload without a redirect map.** SEO continuity is part of the deliverable.
+- **Never upload without offering a dry-run** option first.
+- **Never invent target CMS APIs.** If you're unsure of the import format or
+  API, stop and verify (docs / WebSearch / ask).
+- **Never silently drop failed pages.** Emit a failure list and surface it to
+  the user — they need to know what didn't transfer.
+- **Don't use `mcp__claude-in-chrome__*` tools** for any browser step. Use
+  `/scrape` and `/browse` — they're the project's supported path.
+
+{{LEARNINGS_LOG}}

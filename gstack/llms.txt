@@ -18,6 +18,7 @@ Conventions:
 - [/careful](careful/SKILL.md): Safety guardrails for destructive commands.
 - [/claude](claude/SKILL.md): Claude Code CLI wrapper for non-Claude hosts - three modes.
 - [/codex](codex/SKILL.md): OpenAI Codex CLI wrapper — three modes.
+- [/content-transfer](content-transfer/SKILL.md): Migrates content from one site or source to another: extract from source, map the old content model to the new, transform deterministically, upload to the target, then verify.
 - [/context-restore](context-restore/SKILL.md): Restore working context saved earlier by /context-save.
 - [/context-save](context-save/SKILL.md): Save working context.
 - [/cso](cso/SKILL.md): Chief Security Officer mode.
@@ -26,12 +27,14 @@ Conventions:
 - [/design-review](design-review/SKILL.md): Designer's eye QA: finds visual inconsistency, spacing issues, hierarchy problems, AI slop patterns, and slow interactions — then fixes them.
 - [/design-shotgun](design-shotgun/SKILL.md): Design shotgun: generate multiple AI design variants, open a comparison board, collect structured feedback, and iterate.
 - [/devex-review](devex-review/SKILL.md): Live developer experience audit.
+- [/discovery](discovery/SKILL.md): Project router for the three-route stack.
 - [/document-generate](document-generate/SKILL.md): Generate missing documentation from scratch for a feature, module, or entire project.
 - [/document-release](document-release/SKILL.md): Post-ship documentation update.
 - [/freeze](freeze/SKILL.md): Restrict file edits to a specific directory for the session.
 - [/gstack](gstack/SKILL.md): Fast headless browser for QA testing and site dogfooding.
 - [/gstack-upgrade](gstack-upgrade/SKILL.md): Upgrade gstack to the latest version.
 - [/guard](guard/SKILL.md): Full safety mode: destructive command warnings + directory-scoped edits.
+- [/harvest](harvest/SKILL.md): Audits an existing codebase — usually a prototype, MVP, hackathon project, or /problem-solver output — to decide what to keep, refactor, rebuild, or drop on the way to a production version.
 - [/health](health/SKILL.md): Code quality dashboard.
 - [/investigate](investigate/SKILL.md): Systematic debugging with root cause investigation.
 - [/ios-clean](ios-clean/SKILL.md): Remove the DebugBridge SPM package and all #if DEBUG wiring from an iOS app.
@@ -43,6 +46,7 @@ Conventions:
 - [/landing-report](landing-report/SKILL.md): Read-only queue dashboard for workspace-aware ship.
 - [/learn](learn/SKILL.md): Manage project learnings.
 - [/make-pdf](make-pdf/SKILL.md): Turn any markdown file into a publication-quality PDF.
+- [/market-fit](market-fit/SKILL.md): VC-route commercial deep dive.
 - [/office-hours](office-hours/SKILL.md): YC Office Hours — two modes.
 - [/open-gstack-browser](open-gstack-browser/SKILL.md): Launch GStack Browser — AI-controlled Chromium with the sidebar extension baked in.
 - [/pair-agent](pair-agent/SKILL.md): Pair a remote AI agent with your browser.
@@ -51,6 +55,7 @@ Conventions:
 - [/plan-devex-review](plan-devex-review/SKILL.md): Interactive developer experience plan review.
 - [/plan-eng-review](plan-eng-review/SKILL.md): Eng manager-mode plan review.
 - [/plan-tune](plan-tune/SKILL.md): Self-tuning question sensitivity + developer psychographic for gstack (v1: observational).
+- [/problem-solver](problem-solver/SKILL.md): Sandbox-route personal innovation engine.
 - [/qa](qa/SKILL.md): Systematically QA test a web application and fix bugs found.
 - [/qa-only](qa-only/SKILL.md): Report-only QA testing.
 - [/retro](retro/SKILL.md): Weekly engineering retrospective.
@@ -62,6 +67,7 @@ Conventions:
 - [/ship](ship/SKILL.md): Ship workflow: detect + merge base branch, run tests, review diff, bump VERSION, update CHANGELOG, commit, push, create PR.
 - [/skillify](skillify/SKILL.md): Codify the most recent successful /scrape flow into a permanent browser-skill on disk.
 - [/sync-gbrain](sync-gbrain/SKILL.md): Keep gbrain current with this repo's code and refresh agent search guidance in CLAUDE.md.
+- [/transform](transform/SKILL.md): DX-route digital transformation gate.
 - [/unfreeze](unfreeze/SKILL.md): Clear the freeze boundary set by /freeze, allowing edits to all directories again.
 
 ## Browse Commands

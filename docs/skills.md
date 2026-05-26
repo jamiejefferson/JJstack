@@ -5,6 +5,14 @@ Detailed guides for every gstack skill — philosophy, workflow, and examples.
 | Skill | Your specialist | What they do |
 |-------|----------------|--------------|
 | [`/office-hours`](#office-hours) | **YC Office Hours** | Start here. Six forcing questions that reframe your product before you write code. Pushes back on your framing, challenges premises, generates implementation alternatives. Design doc feeds into every downstream skill. |
+| | | |
+| **Three-route stack** | | |
+| [`/discovery`](#discovery) | **Router** | Pick the delivery route once per project — VC (commercial), DX (digital transformation), or Sandbox (personal). Persists the choice and starts the right plan gate. The build → review → QA → ship tail is shared across all three. |
+| [`/market-fit`](#market-fit) | **Commercial Lead** | VC route. Validates demand before you build: persona, pricing and willingness to pay, distribution, competitive wedge, and a ≤7-day validation experiment. Ends with a Commercial Readiness Go/No-Go. |
+| [`/transform`](#transform) | **Transformation Lead** | DX route. Turns a strategic insight into a costed, measurable change: status-quo cost, target operating model, the cheapest solution that delivers it, plus a measurement and adoption plan. Forkable across client engagements. |
+| [`/problem-solver`](#problem-solver) | **Personal Engineer** | Sandbox route. Builds the smallest thing that works for a personal problem in three time-boxed sprints, then the good-enough gate tells you to stop. |
+| [`/harvest`](#harvest) | **Codebase Auditor** | Cross-route. Audits an existing codebase (prototype, MVP, hackathon, or `/problem-solver` output) and decides what to keep, refactor, rebuild, or drop on the way to a production version. Names the good bones AND the one-way doors hidden in the prototype. Feeds into `/market-fit` or `/transform`. |
+| [`/content-transfer`](#content-transfer) | **Migration Engineer** | Cross-route. Migrates content from one site or CMS to another — extract, map (with sign-off), transform deterministically, upload, verify. CMS-agnostic. The mapping document and redirect map are load-bearing artifacts; the skill won't proceed without sign-off or upload without a redirect map. |
 | [`/plan-ceo-review`](#plan-ceo-review) | **CEO / Founder** | Rethink the problem. Find the 10-star product hiding inside the request. Four modes: Expansion, Selective Expansion, Hold Scope, Reduction. |
 | [`/plan-eng-review`](#plan-eng-review) | **Eng Manager** | Lock in architecture, data flow, diagrams, edge cases, and tests. Forces hidden assumptions into the open. |
 | [`/plan-design-review`](#plan-design-review) | **Senior Designer** | Interactive plan-mode design review. Rates each dimension 0-10, explains what a 10 looks like, fixes the plan. Works in plan mode. |
@@ -1258,3 +1266,47 @@ Convenience wrapper. The structural Release-build guard against shipping DebugBr
 ## `/ios-sync`
 
 Run after upgrading gstack or adding new `@Observable` classes. Detects what's installed, runs gen-accessors against the latest upstream templates, refreshes any changed Swift files, verifies the app rebuilds. Cache-key invalidation handles Swift version changes, generator git rev changes, and source changes.
+
+---
+
+## `/discovery`
+
+The entry point for the three-route stack. Most gstack skills assume a commercial product; this fork adds two more delivery routes and a router to pick between them. A route is chosen once per project and stored in a committed `.gstack-route` file at the repo root, so teammates who clone the project inherit it (outside a git repo it falls back to machine-local state).
+
+| Route | For | Plan gate | Success metric |
+|-------|-----|-----------|----------------|
+| **VC** | Commercial product | `/market-fit` → `/plan-ceo-review` → `/plan-eng-review` | Revenue, users, retention |
+| **DX** | Client / org digital transformation from a strategic insight | `/transform` → `/plan-eng-review` | Time saved, error reduction, ROI |
+| **Sandbox** | Personal, non-commercial invention | `/problem-solver` | Personal time saved |
+
+Every route shares the same tail — implement → `/review` → `/qa` → `/ship` — so the muscle memory carries across all three. The existing review/QA/ship gates read the route's success metric from the plan artifact rather than being forked per route.
+
+---
+
+## `/market-fit`
+
+The VC route's first gate. A product no one will pay for is a hobby with extra steps, so this gate forces the demand side into the open before engineering time is spent. It walks customer segmentation (one concrete persona, not "SMEs"), the cost of the problem and willingness to pay, distribution channels scored by effort and time-to-first-customer, a competitive wedge against the real alternatives (including the manual status quo), and a validation experiment that must complete in seven days. Output is a Commercial Readiness brief and a Green / Yellow / Red verdict. Never invents prices or demand data — missing numbers are marked `[unknown]` and added to a data-collection checklist.
+
+---
+
+## `/transform`
+
+The DX route's planning gate. The unit of value is demonstrable change, not revenue: a process that takes less time, makes fewer errors, or costs less. It turns a strategic insight (meeting notes, management information, an observed inefficiency) into a costed change plan — status-quo cost quantified from real numbers, a target operating model across process/tooling/data/people, the cheapest solution shape that delivers it, a measurement plan with baselines and targets, and an adoption plan with an owner. Output is a Transformation Brief and a Go/No-Go. Built to be forked by teammates: it hardcodes no client, vertical, or data, so the same rigour applies to any engagement. No measurement plan means it cannot return Green.
+
+---
+
+## `/problem-solver`
+
+The Sandbox route. Speed over perfection: build the stupidest thing that could possibly work for a personal, non-commercial problem, then use it for a week before improving it. It pins the work to one irreducible core loop (input → output, one transformation only), picks the cheapest stack (default: a plain script), and builds in three sprints of thirty minutes each. A good-enough gate asks whether the tool already saves ~10 minutes per use; if yes, it tells you to stop. Guardrails refuse platforms, accounts, cloud, and databases for small inputs — if the idea genuinely wants to be a product, it routes you back to `/discovery` and the VC route.
+
+---
+
+## `/harvest`
+
+The missing transition between "I have a working prototype" and "I have a plan for the production version." Most prototypes carry forward design decisions that worked at one user and break at one thousand — hardcoded auth, schemas without migration paths, single-tenant assumptions. `/harvest` names them *before* the rewrite, not after, so the downstream planning gate can design around real constraints. Five phases: inventory the existing code (Grep, Read, and gbrain helpers — never paraphrase code you haven't read), categorise every meaningful module as KEEP / REFACTOR / REBUILD / DROP with quantified totals, name the *good bones* worth anchoring v2 on, name the *one-way doors* hidden in the prototype with cost ratings, and emit a Harvest Brief. Slots in *before* `/market-fit` (commercial scale-up) or `/transform` (internal-tool scale-up). Cross-route — not tied to VC, DX, or Sandbox. Guardrails refuse any bucket assignment without a file path citation and push back on empty Phase 4 lists.
+
+---
+
+## `/content-transfer`
+
+A runbook for site migrations. Built CMS-agnostic on top of `/scrape` and `/browse` for extraction — works for any source/target combination (WordPress → Webflow, Squarespace → Ghost, Notion → custom, etc.). The shape is extract → map → transform → upload → verify, with the **mapping document** as the load-bearing artifact. Phase 1 inventories the source (page count, content types, taxonomies, media, auth). Phase 2 produces a written Mapping Document covering content type mapping, field mapping per type, taxonomy mapping, and URL/slug rewriting rules — the skill will not proceed without explicit user sign-off on this document. Phase 3 plans the transforms and emits a redirect map. Phase 4 extracts (via `/scrape` or by parsing an export file). Phase 5 transforms deterministically and emits a failure list rather than silently dropping pages. Phase 6 uploads, refusing to do so without a redirect map and always offering a dry-run option first. Phase 7 verifies (spot-check, broken-link check, redirect sanity) and emits a Migration Report. Cross-route — any of VC, DX, or Sandbox can invoke it.

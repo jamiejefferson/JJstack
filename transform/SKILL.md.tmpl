@@ -1,0 +1,188 @@
+---
+name: transform
+preamble-tier: 3
+version: 1.0.0
+description: |
+  DX-route digital transformation gate. Turns a strategic insight — meeting notes,
+  management information, an observed inefficiency — into a costed change: target
+  operating model, the cheapest solution that delivers it, a measurement plan, and
+  an adoption plan. Produces a Transformation Brief and a Go / No-Go, not code.
+  Use when asked to "fix this process", "digitise this", "turn these notes into a
+  plan", "improve how the team works", "digital transformation", or "transform".
+  Proactively invoke this skill on the DX route after /discovery, before
+  /plan-eng-review, whenever the user has a strategic insight about an organisation
+  and wants demonstrable, measurable change rather than a commercial product. (gstack)
+allowed-tools:
+  - Bash
+  - Read
+  - Write
+  - Grep
+  - AskUserQuestion
+  - WebSearch
+triggers:
+  - transform
+  - digital transformation
+  - fix this process
+  - turn these notes into a plan
+  - improve how the team works
+---
+
+{{PREAMBLE}}
+
+# /transform — Digital transformation from strategic insight
+
+The DX route's planning gate. The unit of value here is not revenue, it is
+**demonstrable change**: a process that takes less time, makes fewer errors, or
+costs less than it did. This gate turns a strategic insight into a costed,
+measurable change plan. It produces a brief, not code.
+
+This skill is built to be **forked and re-used by your team.** It hardcodes no
+client, no vertical, and no data. Everything client-specific is asked for or
+marked `[unknown]`, so a teammate can run the same gate on a different engagement
+and get the same rigour.
+
+**Prerequisite:** the project should be on the **DX** route (`/discovery`). If the
+route is unset or different, say so and offer to switch first.
+
+**Never invent client facts, headcounts, costs, or quotes.** Where a number is
+missing, write `[unknown]` and add it to the data-collection list. A transformation
+brief built on fabricated baselines is worse than none — it sets ROI promises you
+cannot keep.
+
+---
+
+## Phase 1: Situation and stakeholders
+
+Read whatever the user has pasted (meeting notes, MI, a strategy memo). Then
+establish:
+
+- **Organisation / unit** affected, and roughly how many people.
+- **The strategic insight** in one sentence: the thing that, if true, changes what
+  the org should do.
+- **Current process** for the affected workflow — the actual steps today, including
+  the manual and spreadsheet ones.
+- **Who owns it** and who feels the pain.
+- **What data / systems already exist** (MI sources, tools, exports).
+
+If the notes are thin, ask the smallest set of questions that fills the gaps. One
+at a time, via AskUserQuestion.
+
+## Phase 2: Insight → opportunity, and the cost of the status quo
+
+Translate the strategic insight into one or more concrete change opportunities.
+For the top opportunity, **quantify the cost of doing nothing**:
+
+- Time: hours/week × people × loaded cost.
+- Errors: rate × cost-per-error (rework, refunds, risk).
+- Delay / opportunity cost where it applies.
+
+Output:
+
+```
+Strategic insight:   ...
+Top opportunity:     ...
+Status-quo cost:     £... per [month/year]  (basis: ...)
+```
+
+If you cannot get to a defensible number, say so and mark it `[unknown]` — do not
+manufacture one. The ROI later depends on this baseline being real.
+
+## Phase 3: Target operating model
+
+Describe how the workflow should run *after* the change, across four levers:
+
+- **Process** — the new sequence of steps (and which old steps disappear).
+- **Tooling** — what software/automation does the work now.
+- **Data** — what becomes the source of truth; what stops being re-keyed.
+- **People** — who does what, and what they stop doing.
+
+Make the delta explicit: a short before/after of the workflow. The point of a
+transformation is the difference, so name it precisely.
+
+## Phase 4: Solution shape
+
+Pick the **cheapest thing that delivers the target model**. Ask via AskUserQuestion:
+
+- **Automation script / job** — replaces a recurring manual task.
+- **Internal tool / small app** — a focused UI for the people doing the work.
+- **Dashboard / reporting** — turns existing MI into a decision surface.
+- **Integration** — wires two existing systems together so data stops being re-keyed.
+
+Bias hard toward the smallest viable shape. A nightly script that saves a day a
+week beats a platform that ships in six months. Note what is explicitly **out of
+scope** for v1.
+
+## Phase 5: Measurement plan
+
+No change ships without a way to prove it worked. Define:
+
+| Metric | Baseline (today) | Target | How measured |
+|--------|------------------|--------|--------------|
+| Time per cycle | ... | ... | ... |
+| Error / rework rate | ... | ... | ... |
+| Adoption (active users) | 0 | ... | ... |
+
+Tie at least one metric back to the status-quo cost from Phase 2 so ROI is a
+calculation, not a claim.
+
+## Phase 6: Adoption and risk
+
+A tool no one uses delivers zero change. Cover:
+
+- **Rollout** — who goes first, how it's introduced, what training (if any).
+- **Owner** — who runs it after handover.
+- **Top risks** — adoption resistance, data quality, key-person dependency — and
+  the mitigation for each.
+
+---
+
+## Phase 7: Output — Transformation Brief
+
+Save the brief so `/plan-eng-review` and the downstream gates can read the success
+metric:
+
+```bash
+{{SLUG_SETUP}}
+OUT=~/.gstack/projects/$SLUG/$(date +%Y-%m-%d)-transformation-brief.md
+echo "Writing transformation brief to $OUT"
+```
+
+Write the brief to that path, in this shape:
+
+```markdown
+## Transformation Brief
+- Organisation / unit: ...
+- Strategic insight: ...
+- Status-quo cost: £... per [period] (basis: ...)
+- Target operating model: [process / tooling / data / people delta]
+- Solution shape: [script / tool / dashboard / integration], out-of-scope: ...
+- Success metrics: [table — baseline → target, with measurement]
+- Adoption + owner: ...
+- Top risks + mitigations: ...
+
+### Go / No-Go
+- GREEN  → insight is real, status-quo cost is quantified, a measurable target
+           model and adoption owner exist. Proceed to /plan-eng-review.
+- YELLOW → the change is sound but a baseline or owner is missing. Gather it,
+           then re-run /transform.
+- RED    → no quantifiable change or no one to adopt it. Reframe the insight.
+```
+
+State the verdict in one line and route:
+
+- **GREEN** → "Proceed to `/plan-eng-review`, then implement → `/review` → `/qa` →
+  `/ship`. Deliver with the measurement plan attached so the client can see the
+  change."
+- **YELLOW** → name the missing baseline/owner and how to get it.
+- **RED** → name why there's no demonstrable change here yet.
+
+## Guardrails
+
+- Never fabricate client data, headcounts, costs, or quotes. Use `[unknown]` and a
+  data-collection list.
+- No measurement plan → cannot be Green. "It'll obviously help" is not a metric.
+- If the solution shape is growing into a platform with its own roadmap and budget,
+  ask whether this is really a DX engagement or a product — and if a product,
+  route back to `/discovery` and the VC route.
+
+{{LEARNINGS_LOG}}
