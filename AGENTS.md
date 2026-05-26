@@ -33,6 +33,8 @@ tail applies. Only the planning gate at the front changes.
 | `/market-fit` | VC route. Commercial deep dive: persona, pricing, distribution, wedge, a ≤7-day validation experiment, and a Go/No-Go. |
 | `/transform` | DX route. Turns a strategic insight into a costed, measurable change: target operating model, solution shape, measurement and adoption plan. |
 | `/problem-solver` | Sandbox route. Builds the smallest thing that works for a personal problem in three time-boxed sprints, then tells you to stop. |
+| `/harvest` | Audits an existing codebase (prototype, MVP, or /problem-solver output) and decides what to keep, refactor, rebuild, or drop on the way to a production version. Names the good bones and the one-way doors. Feeds into /market-fit or /transform. |
+| `/content-transfer` | Migrates content from one site/CMS to another: extract, map (with sign-off), transform, upload, verify. CMS-agnostic. Mapping doc and redirect map are load-bearing artifacts. |
 
 ### Implementation + review
 

@@ -381,6 +381,10 @@ export const E2E_TOUCHFILES: Record<string, string[]> = {
   'market-fit-no-experiment-not-green': ['market-fit/**', 'test/skill-e2e-routes.test.ts', 'scripts/resolvers/preamble.ts'],
   'transform-no-measurement-not-green': ['transform/**', 'test/skill-e2e-routes.test.ts', 'scripts/resolvers/preamble.ts'],
   'problem-solver-anti-scope':          ['problem-solver/**', 'test/skill-e2e-routes.test.ts', 'scripts/resolvers/preamble.ts'],
+
+  // Cross-route skills (JJstack fork): harvest and content-transfer.
+  'harvest-no-code-refusal':            ['harvest/**', 'test/skill-e2e-routes.test.ts', 'scripts/resolvers/preamble.ts'],
+  'content-transfer-no-mapping-refusal': ['content-transfer/**', 'test/skill-e2e-routes.test.ts', 'scripts/resolvers/preamble.ts'],
 };
 
 /**
@@ -662,6 +666,8 @@ export const E2E_TIERS: Record<string, 'gate' | 'periodic'> = {
   'market-fit-no-experiment-not-green': 'periodic',
   'transform-no-measurement-not-green': 'periodic',
   'problem-solver-anti-scope': 'periodic',
+  'harvest-no-code-refusal': 'periodic',
+  'content-transfer-no-mapping-refusal': 'periodic',
 };
 
 /**

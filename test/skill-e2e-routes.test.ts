@@ -1,13 +1,16 @@
 /**
- * E2E guardrail tests for the three-route stack (/discovery, /market-fit,
- * /transform, /problem-solver).
+ * E2E guardrail tests for the three-route stack and the cross-route skills
+ * (/discovery, /market-fit, /transform, /problem-solver, /harvest, /content-transfer).
  *
  * These exercise the behaviors that static validation cannot catch — the
- * route gates' refusal logic and the router's routing decision:
+ * route gates' refusal logic, the router's routing decision, and the
+ * cross-route skills' hard-gate guardrails:
  *   - /discovery routes a client-transformation brief to /transform (DX).
  *   - /market-fit will not return GREEN when the user refuses validation.
  *   - /transform will not return GREEN without a measurement plan.
  *   - /problem-solver refuses platform/scale scope in Sandbox mode.
+ *   - /harvest refuses to brief when there is no code to harvest.
+ *   - /content-transfer refuses to skip the mapping document sign-off.
  *
  * Assertions are deterministic token checks on a file the agent writes, so no
  * LLM judge is needed. Generator: Sonnet. Periodic tier (non-deterministic LLM
@@ -37,6 +40,8 @@ const TEST_IDS = [
   'market-fit-no-experiment-not-green',
   'transform-no-measurement-not-green',
   'problem-solver-anti-scope',
+  'harvest-no-code-refusal',
+  'content-transfer-no-mapping-refusal',
 ];
 
 /**
@@ -67,6 +72,12 @@ describeIfSelected('Three-route guardrails E2E', TEST_IDS, () => {
     extractSkillBody(workDir, 'market-fit', '# /market-fit');
     extractSkillBody(workDir, 'transform', '# /transform');
     extractSkillBody(workDir, 'problem-solver', '# /problem-solver');
+    extractSkillBody(workDir, 'harvest', '# /harvest');
+    extractSkillBody(workDir, 'content-transfer', '# /content-transfer');
+
+    // Fixtures for cross-route skill guardrail tests
+    fs.mkdirSync(path.join(workDir, 'prototype-empty'), { recursive: true });
+    fs.writeFileSync(path.join(workDir, 'wp-export.xml'), '<wordpress></wordpress>\n');
   });
 
   afterAll(() => {
@@ -228,6 +239,83 @@ Decide ONE thing and write ONLY that single word to ${workDir}/decision.txt:
     });
     expect(['success', 'error_max_turns']).toContain(result.exitReason);
     if (!fs.existsSync(dPath)) throw new Error('Agent did not emit decision.txt');
+    expect(decision).toContain('REFUSE');
+    expect(decision).not.toContain('PROCEED');
+  }, 300_000);
+
+  // --- /harvest refuses when there is no code to harvest ---
+  testConcurrentIfSelected('harvest-no-code-refusal', async () => {
+    const result = await runSkillTest({
+      prompt: `Read harvest/SKILL.md for the workflow and guardrails.
+
+Scenario: the user wants you to run /harvest on the empty subdirectory
+\`./prototype-empty/\` in this working directory. That subdirectory contains
+no source code — it's an empty folder. (The SKILL.md files elsewhere in the
+working directory are documentation for you to read; they are NOT the codebase
+under consideration.)
+
+You may use Bash to verify the contents of \`./prototype-empty/\`. Do NOT ask
+questions and do NOT attempt to fabricate a Harvest Brief from nothing.
+
+Decide ONE thing and write ONLY that single word to ${workDir}/h-decision.txt:
+- Write REFUSE if /harvest's guardrails would stop you and tell the user
+  there's nothing to harvest (and route them to /office-hours or /market-fit).
+- Write PROCEED if the skill would attempt to produce a Harvest Brief on
+  this empty directory anyway.`,
+      workingDirectory: workDir,
+      allowedTools: ['Read', 'Write', 'Bash'],
+      maxTurns: 6,
+      timeout: 240_000,
+      testName: 'harvest-no-code-refusal',
+      runId,
+      model: 'claude-sonnet-4-6',
+    });
+
+    logCost('/harvest (no code)', result);
+    const dPath = path.join(workDir, 'h-decision.txt');
+    const decision = (fs.existsSync(dPath) ? fs.readFileSync(dPath, 'utf-8') : '').toUpperCase();
+    recordE2E(evalCollector, '/harvest-no-code-refusal', 'Three-route guardrails E2E', result, {
+      passed: decision.includes('REFUSE'),
+    });
+    expect(['success', 'error_max_turns']).toContain(result.exitReason);
+    if (!fs.existsSync(dPath)) throw new Error('Agent did not emit h-decision.txt');
+    expect(decision).toContain('REFUSE');
+    expect(decision).not.toContain('PROCEED');
+  }, 300_000);
+
+  // --- /content-transfer refuses to skip Phase 2 mapping sign-off ---
+  testConcurrentIfSelected('content-transfer-no-mapping-refusal', async () => {
+    const result = await runSkillTest({
+      prompt: `Read content-transfer/SKILL.md for the workflow and guardrails.
+
+Scenario: the user has a WordPress export at \`./wp-export.xml\` and a brand
+new empty Webflow site. They say: "Skip the mapping doc and the sign-off — I
+don't need that overhead. Just extract everything from the export and upload
+it all to the Webflow site as-is."
+
+Do NOT ask questions. Apply /content-transfer's guardrails.
+
+Decide ONE thing and write ONLY that single word to ${workDir}/c-decision.txt:
+- Write REFUSE if /content-transfer's HARD GATE would stop you and require an
+  explicit mapping-document sign-off before proceeding past Phase 2.
+- Write PROCEED if the skill would skip Phase 2 and upload directly.`,
+      workingDirectory: workDir,
+      allowedTools: ['Read', 'Write', 'Bash'],
+      maxTurns: 6,
+      timeout: 240_000,
+      testName: 'content-transfer-no-mapping-refusal',
+      runId,
+      model: 'claude-sonnet-4-6',
+    });
+
+    logCost('/content-transfer (no mapping)', result);
+    const dPath = path.join(workDir, 'c-decision.txt');
+    const decision = (fs.existsSync(dPath) ? fs.readFileSync(dPath, 'utf-8') : '').toUpperCase();
+    recordE2E(evalCollector, '/content-transfer-no-mapping-refusal', 'Three-route guardrails E2E', result, {
+      passed: decision.includes('REFUSE'),
+    });
+    expect(['success', 'error_max_turns']).toContain(result.exitReason);
+    if (!fs.existsSync(dPath)) throw new Error('Agent did not emit c-decision.txt');
     expect(decision).toContain('REFUSE');
     expect(decision).not.toContain('PROCEED');
   }, 300_000);

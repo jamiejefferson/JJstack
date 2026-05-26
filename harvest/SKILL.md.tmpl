@@ -1,0 +1,213 @@
+---
+name: harvest
+preamble-tier: 3
+version: 1.0.0
+description: |
+  Audits an existing codebase — usually a prototype, MVP, hackathon project, or
+  /problem-solver output — to decide what to keep, refactor, rebuild, or drop
+  on the way to a production version. Names both the *good bones* worth
+  anchoring v2 on AND the *one-way doors* hidden in the prototype (auth
+  shortcuts, schema choices, single-user assumptions) that get expensive at
+  scale. Produces a Harvest Brief, not code. Feeds into /market-fit (VC) or
+  /transform (DX) downstream.
+  Use when asked to "scale this up", "productionise this", "audit my prototype",
+  "turn this into a product", "harvest", or "review existing code for v2".
+  Proactively invoke when the user has existing code (especially from
+  /problem-solver) and wants to grow it into something bigger. (gstack)
+allowed-tools:
+  - Bash
+  - Read
+  - Grep
+  - Glob
+  - AskUserQuestion
+  - WebSearch
+triggers:
+  - harvest
+  - scale this up
+  - productionise this
+  - audit my prototype
+  - turn this into a product
+  - review existing code for v2
+---
+
+{{PREAMBLE}}
+
+# /harvest — From scrappy build to production foundation
+
+The missing transition between "I have a working prototype" and "I have a plan
+for the production version." Most prototypes carry forward design decisions
+that worked at one user and break at one thousand — hardcoded auth, schemas
+without migration paths, "free tier forever" assumptions. /harvest names them
+*before* the rewrite, not after, so the next planning gate can design around
+real constraints instead of inheriting silent ones.
+
+This skill produces a brief, not code. It feeds the downstream planning gate
+on whichever route fits next:
+
+- **VC route** (commercialising the prototype): `/harvest` → `/market-fit` →
+  `/plan-ceo-review` → `/plan-eng-review` → implement.
+- **DX route** (an internal tool that needs to scale across an org): `/harvest`
+  → `/transform` → `/plan-eng-review` → implement.
+- **Sandbox route**: don't run /harvest. If the tool's already saving you time,
+  /problem-solver's anti-scope guardrails still apply.
+
+**Never categorise code you haven't read.** "Looks like it does X" without a
+file path is fabrication. Use Grep, Read, and gbrain helpers (code-def,
+code-refs, code-callers) to ground every claim.
+
+---
+
+## Phase 1: Inventory the existing code
+
+Get a true picture of what's actually there. Don't trust a README — read the code.
+
+Useful starting commands:
+
+```bash
+# Lines and language mix
+find . -type f \( -name "*.ts" -o -name "*.tsx" -o -name "*.py" -o -name "*.js" -o -name "*.jsx" -o -name "*.rb" -o -name "*.go" -o -name "*.rs" \) -not -path "*/node_modules/*" -not -path "*/.git/*" | xargs wc -l 2>/dev/null | tail -1
+# Module boundaries
+ls -la src/ app/ lib/ 2>/dev/null
+# External dependencies
+cat package.json 2>/dev/null | head -50; cat requirements.txt 2>/dev/null; cat Gemfile 2>/dev/null
+# Test surface
+find . -type f -name "*test*" -not -path "*/node_modules/*" | head -20
+```
+
+If `gbrain` is installed in this worktree (check for `.gbrain-source` at repo
+root), prefer it over Grep for semantic questions: `gbrain code-def <symbol>`,
+`gbrain code-refs <symbol>`, `gbrain query "<question>"`.
+
+Output: a **Module Map** with named boundaries, dependencies, and the rough
+size of each. Read these from the code, not from documentation.
+
+## Phase 2: Categorise every meaningful piece
+
+For each significant module, pick exactly one bucket:
+
+| Bucket | Criteria |
+|--------|----------|
+| **KEEP** | Works at scale as written. Anchor v2 around it. |
+| **REFACTOR** | Right shape, wrong specifics. Same intent, cleaner implementation. |
+| **REBUILD** | Wrong shape. Use as a reference for behaviour, but write again. |
+| **DROP** | Solves a problem v2 doesn't have, or was always wrong. |
+
+Quantify the buckets — e.g., "~30% keep, ~40% refactor, ~20% rebuild, ~10% drop."
+The number tells the next planner how much new code v2 actually requires.
+
+If you're unsure between buckets for a module, default to REFACTOR and note
+the uncertainty. REBUILD is expensive; only choose it when you've articulated
+*why* the shape is wrong.
+
+## Phase 3: Name the good bones
+
+Some prototypes hold design decisions that are *genuinely good* — the kind that
+turn into v2 load-bearing assets if you anchor on them. They're not always the
+obvious bits. Look for:
+
+- Abstractions that match how the domain actually thinks about the problem.
+- Data models that survive contact with real users without contortions.
+- Patterns the prototype proved out (retry, idempotency, caching strategy).
+- Naming conventions worth preserving for continuity.
+
+For each, name it explicitly with a file path:
+
+> "`src/billing/period.ts:14-87` — the `BillingPeriod` value object captures
+> month-end edge cases correctly. Anchor v2's invoice engine around it."
+
+Three to seven good bones is typical. If you can't find any, that's a signal:
+you may be on REBUILD territory rather than scale-up territory.
+
+## Phase 4: Name the one-way doors
+
+The most important phase. Prototypes accumulate decisions that are cheap now
+and expensive later — the longer they sit, the more code depends on them, the
+costlier the undo. Common shapes:
+
+- **Auth shortcuts.** Single user assumed everywhere. No tenant/org isolation.
+  Hardcoded API keys in source.
+- **Schema choices without migration paths.** Columns that should have been
+  tables. Tables that should have been events. JSON blobs hiding real schemas.
+- **Data-model assumptions.** Everything is "free tier" / "one workspace" /
+  "synchronous." The cost shows up the first time you contradict the assumption.
+- **Privacy/security shortcuts.** PII in logs. Secrets in git history. Cross-user
+  data leaks that nobody triggered because there's only one user.
+- **Performance assumptions.** Works for 10 rows; will it for 10M? Linear scans
+  that become quadratic at scale.
+- **Distribution coupling.** Code that assumes one deployment, one timezone,
+  one currency, one language.
+
+For each one-way door, output:
+
+```
+ONE-WAY DOOR: <short name>
+Where:        <file:line> (and others)
+Cost to undo: HIGH | MEDIUM | LOW
+When to address: v2 | later | never
+Why it matters: <one sentence>
+```
+
+**HIGH cost** = data migration required, downtime likely, every consumer
+affected. **MEDIUM** = a refactor touching many files but no data move.
+**LOW** = mechanical change, mostly contained.
+
+Three to ten one-way doors is typical. Zero usually means you missed some —
+read more code.
+
+---
+
+## Phase 5: Output — Harvest Brief
+
+Save the brief so the downstream planning gate (`/market-fit`, `/transform`,
+or `/plan-ceo-review`) can read it:
+
+```bash
+{{SLUG_SETUP}}
+OUT=~/.gstack/projects/$SLUG/$(date +%Y-%m-%d)-harvest-brief.md
+echo "Writing harvest brief to $OUT"
+```
+
+Brief shape:
+
+```markdown
+## Harvest Brief — <project name>
+
+### Module Map
+- <module>: <lines>, <one-line purpose>, <bucket>
+- ...
+
+### Bucket totals
+KEEP: X% · REFACTOR: Y% · REBUILD: Z% · DROP: W%
+
+### Good bones (anchor v2 here)
+- `<file:line>` — <what + why it's good>
+- ...
+
+### One-way doors (address before scale)
+- <name> — <file:line> — Cost: HIGH/MED/LOW — When: v2/later/never
+  *Why:* <one sentence>
+- ...
+
+### Suggested next gate
+- VC commercial intent → /market-fit, then /plan-ceo-review
+- DX internal-tool scale-up → /transform
+- Reframe needed first → /office-hours
+```
+
+State the suggested next gate in one line, then route there.
+
+## Guardrails
+
+- **Never categorise code without reading it.** Every bucket assignment cites a
+  file path. "Probably does X" is not a categorisation.
+- **No empty Phase 4.** Zero one-way doors usually means you haven't looked
+  hard enough at auth, schema, or multi-user assumptions. Push back on yourself.
+- **No "easy rewrite" claims.** If you said REBUILD for a module, you owe an
+  estimate of effort and what becomes harder during the transition.
+- **If the codebase is empty or doesn't exist**, stop and tell the user: this
+  skill is for harvesting existing code. Without code there's nothing to
+  harvest — go to `/office-hours` or `/market-fit` first.
+- **Don't fabricate code citations.** If you reference `src/x.ts:42`, that line
+  must exist. Grep before citing.
+
+{{LEARNINGS_LOG}}

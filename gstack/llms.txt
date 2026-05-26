@@ -18,6 +18,7 @@ Conventions:
 - [/careful](careful/SKILL.md): Safety guardrails for destructive commands.
 - [/claude](claude/SKILL.md): Claude Code CLI wrapper for non-Claude hosts - three modes.
 - [/codex](codex/SKILL.md): OpenAI Codex CLI wrapper — three modes.
+- [/content-transfer](content-transfer/SKILL.md): Migrates content from one site or source to another: extract from source, map the old content model to the new, transform deterministically, upload to the target, then verify.
 - [/context-restore](context-restore/SKILL.md): Restore working context saved earlier by /context-save.
 - [/context-save](context-save/SKILL.md): Save working context.
 - [/cso](cso/SKILL.md): Chief Security Officer mode.
@@ -33,6 +34,7 @@ Conventions:
 - [/gstack](gstack/SKILL.md): Fast headless browser for QA testing and site dogfooding.
 - [/gstack-upgrade](gstack-upgrade/SKILL.md): Upgrade gstack to the latest version.
 - [/guard](guard/SKILL.md): Full safety mode: destructive command warnings + directory-scoped edits.
+- [/harvest](harvest/SKILL.md): Audits an existing codebase — usually a prototype, MVP, hackathon project, or /problem-solver output — to decide what to keep, refactor, rebuild, or drop on the way to a production version.
 - [/health](health/SKILL.md): Code quality dashboard.
 - [/investigate](investigate/SKILL.md): Systematic debugging with root cause investigation.
 - [/ios-clean](ios-clean/SKILL.md): Remove the DebugBridge SPM package and all #if DEBUG wiring from an iOS app.
